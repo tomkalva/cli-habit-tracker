@@ -3,20 +3,45 @@ import sqlite3
 import datetime
 
 #parser commands
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    prog="habit",
+    description="A simple CLI habit tracker",
+    formatter_class=argparse.RawTextHelpFormatter
+)
 
 subparsers = parser.add_subparsers(dest="command")
 
-add_parser = subparsers.add_parser("add")
+add_parser = subparsers.add_parser("add",
+    help="Add a new habit",
+    description="Creates a new habit in your tracker"
+)
 add_parser.add_argument("habit")
 
-remove_parser = subparsers.add_parser("remove")
+
+remove_parser = subparsers.add_parser("remove",
+    help="Remove a habit",
+    description="Removes a habit from your tracker"
+)
 remove_parser.add_argument("id", type=int)
 
-list_parser = subparsers.add_parser("list")
+list_parser = subparsers.add_parser("list",
+    help="List all habits",
+    description="Lists all your habits and their ID's"
+)
 
-done_parser = subparsers.add_parser("done")
+done_parser = subparsers.add_parser("done",
+    help="Mark habit as done",
+    description="Marks a habit as done for today"
+)
 done_parser.add_argument("id", type=int)
+
+parser.epilog = """
+Examples:
+  habit add exercise
+  habit list
+  habit remove 3
+  habit done 2
+"""
 
 args = parser.parse_args()
 
@@ -44,7 +69,12 @@ CREATE TABLE IF NOT EXISTS completions (
 
 
 #command logic
-if args.command == "add":
+if args.command is None:
+    parser.print_help()
+    exit()
+
+
+elif args.command == "add":
     cursor.execute(
         "SELECT 1 FROM habits WHERE name = ?",
         (args.habit,)
