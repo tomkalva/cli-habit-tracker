@@ -38,14 +38,13 @@ if args.command == "add":
     )
     
 if args.command == "list":
-    cursor.execute("SELECT * FROM habits")
+    cursor.execute("SELECT * FROM habits ORDER BY id")
     rows = cursor.fetchall()
-
-    print_string = ""
-    for habit in rows:
-        print_string += f"{habit[0]}.{habit[1]}\n"
-
-    print(print_string)
+    if not rows:
+        print("No habits yet.\nTry: add <your habit>")
+    else:
+        for id, name in rows:
+            print(f"{id:>3} | {name}")
 
 
 connection.commit()
