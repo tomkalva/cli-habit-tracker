@@ -42,6 +42,12 @@ today_parser = subparsers.add_parser("today",
     description="Displays all habits grouped into done and not done for today"
 )
 
+done_parser = subparsers.add_parser("streak",
+    help="Mark habit as done",
+    description="Marks a habit as done for today"
+)
+done_parser.add_argument("id", type=int)
+
 
 parser.epilog = """
 Examples:
@@ -77,7 +83,20 @@ CREATE TABLE IF NOT EXISTS completions (
 """)
 
 
+def calculate_streak(done_dates):
+    streak = 0
+    current_day = datetime.date.today()
 
+    while True:
+        day_str = current_day.isoformat()
+
+        if day_str in done_dates:
+            streak += 1
+            current_day -= datetime.timedelta(days=1)
+        else:
+            break
+    
+    return streak
 
 
 if args.command is None:
@@ -194,6 +213,18 @@ elif args.command == "done":
     else:
         print("Habit not found")
 
+
+
+elif args.command == "streak":
+    cursor.execute(
+    "SELECT date FROM completions WHERE habit_id = ?",
+    (args.id,)
+    )
+    done_dates = {row[0] for row in cursor.fetchall()}
+
+    streak = calculate_streak(done_dates)
+
+    print(f"Current streak: {streak}")
 
 
 
