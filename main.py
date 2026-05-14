@@ -11,7 +11,7 @@ add_parser = subparsers.add_parser("add")
 add_parser.add_argument("habit")
 
 remove_parser = subparsers.add_parser("remove")
-remove_parser.add_argument("habit")
+remove_parser.add_argument("id", type=int)
 
 list_parser = subparsers.add_parser("list")
 
@@ -53,20 +53,21 @@ if args.command == "add":
 
 if args.command == "remove":
     cursor.execute(
-        "SELECT 1 FROM habits WHERE name = ?",
-        (args.habit,)
+        "SELECT 1 FROM habits WHERE id = ?",
+        (args.id,)
     )
+
     exists = cursor.fetchone()
 
     if exists:
         cursor.execute(
-            "DELETE FROM habits WHERE name = ?",
-            (args.habit,)
+            "DELETE FROM habits WHERE id = ?",
+            (args.id,)
         )
         connection.commit()
-        print(f"Removed {args.habit}")
+        print(f"Removed habit {args.id}")
     else:
-        print("Habit doesn't exist")
+        print("Habit not found")
         
         
 
@@ -76,8 +77,11 @@ if args.command == "list":
     if not rows:
         print("No habits yet.\nTry: add <your habit>")
     else:
+        print("ID  | HABIT")
+        print("------------")
+
         for id, name in rows:
-            print(f"{id:>3} | {name}")
+            print(f"{id:>2}  | {name}")
 
 
 
