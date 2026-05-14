@@ -43,8 +43,8 @@ today_parser = subparsers.add_parser("today",
 )
 
 done_parser = subparsers.add_parser("streak",
-    help="Mark habit as done",
-    description="Marks a habit as done for today"
+    help="Shows streak for habit",
+    description="Shows number of consecutive days this habit has been complete"
 )
 done_parser.add_argument("id", type=int)
 
@@ -99,6 +99,12 @@ def calculate_streak(done_dates):
     return streak
 
 
+def get_done_dates(cursor, id):
+    return {date for (date,) in cursor.execute(
+    "SELECT date FROM completions WHERE habit_id = ?",
+    (id,))}
+
+
 if args.command is None:
     parser.print_help()
     exit()
@@ -149,11 +155,18 @@ elif args.command == "list":
     if not rows:
         print("No habits yet.\nTry: add <your habit>")
     else:
-        print("ID  | HABIT")
-        print("------------")
+        print(f"{'ID':<3} | {'HABIT':<12} | STREAK")
+        print("-" * 35)
 
         for id, name in rows:
-            print(f"{id:>2}  | {name}")
+            streak = calculate_streak(get_done_dates(cursor, id))
+
+            streak_text = f"{streak} day" if streak == 1 else f"{streak} days"
+            name = (name[:11] + "…") if len(name) > 12 else name
+
+            print(f"{id:<3} | {name:<12} | {streak_text}")
+
+
 
 
 elif args.command == "today":
@@ -216,13 +229,7 @@ elif args.command == "done":
 
 
 elif args.command == "streak":
-    cursor.execute(
-    "SELECT date FROM completions WHERE habit_id = ?",
-    (args.id,)
-    )
-    done_dates = {row[0] for row in cursor.fetchall()}
-
-    streak = calculate_streak(done_dates)
+    streak = calculate_streak(get_done_dates(cursor, args.id))
 
     print(f"Current streak: {streak}")
 
