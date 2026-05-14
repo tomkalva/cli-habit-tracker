@@ -2,7 +2,7 @@ import argparse
 import sqlite3
 import datetime
 
-#parser commands
+
 parser = argparse.ArgumentParser(
     prog="habit",
     description="A simple CLI habit tracker",
@@ -24,10 +24,6 @@ remove_parser = subparsers.add_parser("remove",
 )
 remove_parser.add_argument("id", type=int)
 
-list_parser = subparsers.add_parser("list",
-    help="List all habits",
-    description="Lists all your habits and their ID's"
-)
 
 done_parser = subparsers.add_parser("done",
     help="Mark habit as done",
@@ -35,18 +31,33 @@ done_parser = subparsers.add_parser("done",
 )
 done_parser.add_argument("id", type=int)
 
+
+list_parser = subparsers.add_parser("list",
+    help="List all habits",
+    description="Lists all your habits and their ID's"
+)
+
+today_parser = subparsers.add_parser("today",
+    help="Show today's completion status",
+    description="Displays all habits grouped into done and not done for today"
+)
+
+
 parser.epilog = """
 Examples:
-  habit add exercise
-  habit list
-  habit remove 3
-  habit done 2
+  main.py add exercise
+  main.py remove 3
+  main.py done 2
+  main.py list
+  main.py today
 """
 
 args = parser.parse_args()
 
 
-#creates db files
+
+
+
 connection = sqlite3.connect("habits.db")
 cursor = connection.cursor()
 
@@ -68,7 +79,7 @@ CREATE TABLE IF NOT EXISTS completions (
 
 
 
-#command logic
+
 if args.command is None:
     parser.print_help()
     exit()
@@ -126,6 +137,41 @@ elif args.command == "list":
             print(f"{id:>2}  | {name}")
 
 
+elif args.command == "today":
+    cursor.execute("SELECT * FROM habits ORDER BY id")
+    all_habits = cursor.fetchall()
+
+    if not all_habits:
+        print("No habits yet.\nTry: add <your habit>")
+    else:
+        today_date = datetime.date.today().isoformat()
+
+        cursor.execute(
+            "SELECT habit_id FROM completions WHERE date = ?",
+            (today_date,)
+        )
+        completed_habits = cursor.fetchall()
+
+        completed_ids = {row[0] for row in completed_habits}
+
+        done_today = []
+        not_done_today = []
+
+        for habit_id, name in all_habits:
+            if habit_id in completed_ids:
+                done_today.append((habit_id, name))
+            else:
+                not_done_today.append((habit_id, name))
+
+        print("Done today:")
+        for id, name in done_today:
+            print(f"{id:>2}  | {name}")
+
+        print("\nNot done today:")
+        for id, name in not_done_today:
+            print(f"{id:>2}  | {name}")
+
+
 
 elif args.command == "done":
     cursor.execute(
@@ -136,10 +182,10 @@ elif args.command == "done":
 
     if exists:
         try:
-            today = datetime.date.today().isoformat()
+            today_date = datetime.date.today().isoformat()
             cursor.execute(
                 "INSERT INTO completions (habit_id, date) VALUES (?, ?)",
-                (args.id, today)
+                (args.id, today_date)
             )
             connection.commit()
             print(f"Marked habit {args.id} as done")
