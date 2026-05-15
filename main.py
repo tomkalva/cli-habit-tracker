@@ -36,6 +36,8 @@ list_parser = subparsers.add_parser("list",
     help="List all habits",
     description="Lists all your habits and their ID's"
 )
+list_parser.add_argument("--sort", choices=["streak", "id", "name"])
+
 
 today_parser = subparsers.add_parser("today",
     help="Show today's completion status",
@@ -83,6 +85,7 @@ CREATE TABLE IF NOT EXISTS completions (
 """)
 
 
+
 def calculate_streak(done_dates):
     streak = 0
     current_day = datetime.date.today()
@@ -98,11 +101,12 @@ def calculate_streak(done_dates):
     
     return streak
 
-
 def get_done_dates(cursor, id):
     return {date for (date,) in cursor.execute(
     "SELECT date FROM completions WHERE habit_id = ?",
     (id,))}
+
+
 
 
 if args.command is None:
@@ -155,16 +159,41 @@ elif args.command == "list":
     if not rows:
         print("No habits yet.\nTry: add <your habit>")
     else:
-        print(f"{'ID':<3} | {'HABIT':<12} | STREAK")
-        print("-" * 35)
+        def list_header():
+            print(f"{'ID':<3} | {'HABIT':<12} | STREAK")
+            print("-" * 35)
 
-        for id, name in rows:
-            streak = calculate_streak(get_done_dates(cursor, id))
+        def list_print(rows, sort_index):
+            data = []
 
-            streak_text = f"{streak} day" if streak == 1 else f"{streak} days"
-            name = (name[:11] + "…") if len(name) > 12 else name
+            for id, name in rows:
+                streak = calculate_streak(get_done_dates(cursor, id))
+                data.append((id, name, streak))
+            reverse = args.sort == "streak"
+            data.sort(key=lambda x: x[sort_index], reverse=reverse)
 
-            print(f"{id:<3} | {name:<12} | {streak_text}")
+            for id, name, streak in data:
+                streak_text = f"{streak} day" if streak == 1 else f"{streak} days"
+                name = (name[:11] + "…") if len(name) > 12 else name
+
+                print(f"{id:<3} | {name:<12} | {streak_text}")
+
+
+        if args.sort == "streak":
+            list_header()
+            list_print(rows, 2)
+
+        elif args.sort == "id":
+            list_header()
+            list_print(rows, 0)
+
+        elif args.sort == "name":
+            list_header()
+            list_print(rows, 1)
+
+        else:
+            list_header()
+            list_print(rows, 0)
 
 
 
