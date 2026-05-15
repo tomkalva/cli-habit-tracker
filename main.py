@@ -98,7 +98,18 @@ for habit_id, date in all_completions:
 
 def calculate_streak(done_dates):
     streak = 0
-    current_day = datetime.date.today()
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    today_str = today.isoformat()
+    yesterday_str = yesterday.isoformat()
+
+    if today_str in done_dates:
+        current_day = today
+    elif yesterday_str in done_dates:
+        current_day = yesterday
+    else:
+        return 0
+    
 
     while True:
         day_str = current_day.isoformat()
@@ -110,6 +121,7 @@ def calculate_streak(done_dates):
             break
     
     return streak
+
 
 def get_done_dates(cursor, id): #retired
     return {date for (date,) in cursor.execute(
@@ -154,14 +166,22 @@ elif args.command == "remove":
     exists = cursor.fetchone()
 
     if exists:
-        cursor.execute(
-            "DELETE FROM habits WHERE id = ?",
-            (args.id,)
-        )
-        connection.commit()
-        print(f"Removed habit {args.id}")
+        cursor.execute("SELECT name FROM habits WHERE id = ?", (args.id,))
+        name = cursor.fetchone()
+        confirm = input(f'Are you sure you want to delete "{name}"? (y/N): ')
+
+        if confirm.lower() not in ("y", "yes"):
+            print("Cancelled")
+            exit()
+        
+        else:
+            cursor.execute("DELETE FROM completions WHERE habit_id = ?", (args.id,))
+            cursor.execute("DELETE FROM habits WHERE id = ?", (args.id,))
+            connection.commit()
+            print(f"Removed habit {args.id}")
     else:
         print("Habit not found")
+        exit()
         
         
 
