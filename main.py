@@ -1,6 +1,8 @@
 import argparse
 import sqlite3
 import datetime
+from collections import defaultdict
+
 
 
 parser = argparse.ArgumentParser(
@@ -85,6 +87,14 @@ CREATE TABLE IF NOT EXISTS completions (
 """)
 
 
+cursor.execute("SELECT habit_id, date FROM completions")
+all_completions = cursor.fetchall()
+done_map = defaultdict(set) #replaces get_done_dates
+
+for habit_id, date in all_completions:
+    done_map[habit_id].add(date)
+
+
 
 def calculate_streak(done_dates):
     streak = 0
@@ -101,10 +111,12 @@ def calculate_streak(done_dates):
     
     return streak
 
-def get_done_dates(cursor, id):
+def get_done_dates(cursor, id): #retired
     return {date for (date,) in cursor.execute(
     "SELECT date FROM completions WHERE habit_id = ?",
     (id,))}
+
+
 
 
 
@@ -167,7 +179,7 @@ elif args.command == "list":
             data = []
 
             for id, name in rows:
-                streak = calculate_streak(get_done_dates(cursor, id))
+                streak = calculate_streak(done_map[id])
                 data.append((id, name, streak))
             reverse = args.sort == "streak"
             data.sort(key=lambda x: x[sort_index], reverse=reverse)
@@ -258,7 +270,7 @@ elif args.command == "done":
 
 
 elif args.command == "streak":
-    streak = calculate_streak(get_done_dates(cursor, args.id))
+    streak = calculate_streak(done_map[id])
 
     print(f"Current streak: {streak}")
 
