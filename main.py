@@ -51,11 +51,11 @@ week_parser = subparsers.add_parser("week",
     description="Displays how many times each habit was completed during the last 7 days"
 )
 
-done_parser = subparsers.add_parser("streak",
+streak_parser = subparsers.add_parser("streak",
     help="Shows streak for habit",
     description="Shows number of consecutive days this habit has been complete"
 )
-done_parser.add_argument("id", type=int)
+streak_parser.add_argument("id", type=int)
 
 
 parser.epilog = """
@@ -167,8 +167,8 @@ elif args.command == "remove":
 
     if exists:
         cursor.execute("SELECT name FROM habits WHERE id = ?", (args.id,))
-        name = cursor.fetchone()
-        confirm = input(f'Are you sure you want to delete {name}? (y/N): ')
+        name = cursor.fetchone()[0]
+        confirm = input(f'Are you sure you want to delete "{name}"? (y/N): ')
 
         if confirm.lower() not in ("y", "yes"):
             print("Cancelled")
@@ -329,7 +329,7 @@ elif args.command == "done":
 
 
 elif args.command == "streak":
-    streak = calculate_streak(done_map[id])
+    streak = calculate_streak(done_map[args.id])
 
     print(f"Current streak: {streak}")
 
