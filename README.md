@@ -1,6 +1,5 @@
 # cli-habit-tracker
-This is my first personal project.
-A command-line habit tracker with streaks, weekly progress, and SQLite persistence.
+This is my first personal project. A command-line habit tracker with streaks, weekly progress, and SQLite persistence.
 
 ---
 
