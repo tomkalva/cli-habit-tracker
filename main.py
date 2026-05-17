@@ -46,6 +46,11 @@ today_parser = subparsers.add_parser("today",
     description="Displays all habits grouped into done and not done for today"
 )
 
+week_parser = subparsers.add_parser("week",
+    help="Show habit completion summary for the last 7 days",
+    description="Displays how many times each habit was completed during the last 7 days"
+)
+
 done_parser = subparsers.add_parser("streak",
     help="Shows streak for habit",
     description="Shows number of consecutive days this habit has been complete"
@@ -89,7 +94,7 @@ CREATE TABLE IF NOT EXISTS completions (
 
 cursor.execute("SELECT habit_id, date FROM completions")
 all_completions = cursor.fetchall()
-done_map = defaultdict(set) #replaces get_done_dates
+done_map = defaultdict(set)
 
 for habit_id, date in all_completions:
     done_map[habit_id].add(date)
@@ -122,11 +127,6 @@ def calculate_streak(done_dates):
     
     return streak
 
-
-def get_done_dates(cursor, id): #retired
-    return {date for (date,) in cursor.execute(
-    "SELECT date FROM completions WHERE habit_id = ?",
-    (id,))}
 
 
 
@@ -168,7 +168,7 @@ elif args.command == "remove":
     if exists:
         cursor.execute("SELECT name FROM habits WHERE id = ?", (args.id,))
         name = cursor.fetchone()
-        confirm = input(f'Are you sure you want to delete "{name}"? (y/N): ')
+        confirm = input(f'Are you sure you want to delete {name}? (y/N): ')
 
         if confirm.lower() not in ("y", "yes"):
             print("Cancelled")
@@ -263,6 +263,45 @@ elif args.command == "today":
         print("\nNot done today:")
         for id, name in not_done_today:
             print(f"{id:>2}  | {name}")
+
+
+
+
+elif args.command == "week":
+    cursor.execute("SELECT * FROM habits ORDER BY id")
+    all_habits = cursor.fetchall()
+
+    if not all_habits:
+        print("No habits yet.\nTry: add <your habit>")
+    else:
+        today = datetime.date.today()
+        weekdays = []
+        weekdays_full = []
+        NAME_WIDTH = 12
+        DAY_WIDTH = 3
+
+        for i in range(6, -1, -1):
+            day = today -datetime.timedelta(days=i)
+            weekdays.append(day.strftime("%a"))
+            weekdays_full.append(day)
+
+        print(f"{'HABIT':<12} | " + " | ".join(f"{d:<{DAY_WIDTH}}" for d in weekdays))
+        print("-" * 55)
+
+        for habit_id, name in all_habits:
+            marks = []
+            
+            for day in weekdays_full:
+                if day.isoformat() in done_map[habit_id]:
+                        marks.append("✔")
+                else:
+                    marks.append("✘")
+
+
+            name = name[:NAME_WIDTH - 1] + "…" if len(name) > NAME_WIDTH else name
+
+            print(f"{name:<{NAME_WIDTH}} | " + " | ".join(f"{m:<{DAY_WIDTH}}" for m in marks))
+
 
 
 
